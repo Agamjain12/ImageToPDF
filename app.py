@@ -1,6 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog
 import os
+from reportlab.pdfgen import canvas
+from reportlab.lib.colors import Color
+from PIL import Image
+from tkinter import messagebox
+
 
 class ImageToPDFConverter:
     def __init__(self,root):
@@ -30,7 +35,8 @@ class ImageToPDFConverter:
         convert_button.pack(pady=10)
 
     def select_images(self):
-        self.image_paths = filedialog.askopenfilenames(title="Select Images", filetypes=[("Image files", "*.png;*.jpg;*.jpeg")])
+        self.image_paths = filedialog.askopenfilenames(title="Select Images", filetypes=[("Image files", ("*.png", "*.jpg", "*.jpeg"))]
+)
         self.update_selected_images_listbox()
 
     def update_selected_images_listbox(self):
@@ -38,7 +44,34 @@ class ImageToPDFConverter:
 
         for image_path in self.image_paths:
             _, image_path = os.path.split(image_path)
-    
+            self.selected_images_listbox.insert(tk.END, image_path)
+
+    def convert_images_to_pdf(self):
+        if not self.image_paths:
+            messagebox.showwarning("warning", "no images selected")
+            return
+
+        output_pdf_path = self.output_pdf_name.get() + ".pdf" if self.output_pdf_name.get() else "output.pdf"
+
+        pdf = canvas.Canvas(output_pdf_path, pagesize=(612,792))
+        for image_path in self.image_paths:
+            img = Image.open(image_path)
+            available_width = 540
+            available_height = 720
+            scale_factor = min(available_width / img.width, available_height / img.height)
+            new_width = img.width * scale_factor
+            new_height = img.height * scale_factor
+            x_centered = (612- new_width / 2)
+            y_centered = (792- new_height / 2)
+            white_color = Color(1, 1, 1)
+            pdf.setFillColor(white_color)
+            pdf.rect(0, 0, 612, 792, fill=True)
+            pdf.drawInlineImage(img, x_centered, y_centered, width=new_width, height=new_height)
+            pdf.showPage()
+
+        pdf.save()
+
+        messagebox.showinfo("success", f"PDF created successfully at {output_pdf_path}")
 
 def main():
     root = tk.Tk()
